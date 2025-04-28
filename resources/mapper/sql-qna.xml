@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="org.big.mapper.QnaMapper">
+  	<select id="selectQnaList" resultType="org.big.dto.QnaDto">
+  		<![CDATA[
+  			SELECT 
+  				qna_idx,
+  				title,
+  				hit_cnt,
+  				created_datetime
+  			FROM
+  				t_qna
+  			WHERE
+  				deleted_yn='N'
+  			ORDER BY qna_idx DESC			
+  		]]>
+  	</select>
+  	
+  	<insert id="insertQna" parameterType="org.big.dto.QnaDto" useGeneratedKeys="true">
+  	<selectKey keyProperty="qnaIdx" resultType="int" order="AFTER">
+  		SELECT tboard_seq.currval FROM dual
+  	</selectKey>
+  		<![CDATA[
+  			INSERT INTO t_qna
+  			(
+  				qna_idx,
+  				title,
+  				content,
+  				created_datetime,
+  				creator_id
+  			)
+  			VALUES
+  			(
+  				tqna_seq.nextval,
+  				#{title},
+  				#{content},
+  				sysdate,
+  				'admin'
+  			)
+  		]]>
+  	</insert>
+  	
+  	<update id="updateHitCount" parameterType="int">
+  		<![CDATA[
+  			UPDATE
+  				t_qna
+  			SET
+  				hit_cnt	= hit_cnt + 1
+  			WHERE
+  				qna_idx = #{qnaIdx}	
+  		]]>
+  	</update>
+  	
+  	<select id="selectQnaDetail" resultType="org.big.dto.QnaDto" parameterType="int">
+  		<![CDATA[
+  			SELECT 
+  				qna_idx,
+  				title,
+  				content,
+  				hit_cnt,
+  				created_datetime,
+  				creator_id
+  			FROM
+  				t_qna
+  			WHERE 
+  				qna_idx=#{qnaIdx} AND deleted_yn='N'		
+  		]]>
+  	</select>
+  	
+  	<update id="updateQna" parameterType="org.big.dto.QnaDto">
+  		<![CDATA[
+  			UPDATE
+  				t_qna
+  			SET
+  				title=#{title},
+  				content=#{content},
+  				updated_datetime=sysdate,
+  				updator_id='admin'
+  			WHERE
+  				qna_idx=#{qnaIdx}	
+  		]]>
+  	</update>
+  	
+  	<delete id="deleteQna" parameterType="int">
+  		DELETE
+  		FROM
+  			t_qna
+  		WHERE
+  			qna_idx=#{qnaIdx}	
+  	</delete>
+  	
+  	<insert id="insertQnaFileList" parameterType="org.big.dto.QnaFileDto">
+  		INSERT ALL
+  		<foreach collection="list" item="item" index="index"  open="" separator=" " close="SELECT * FROM DUAL">
+	    
+	    INTO t_file
+	        (
+	        idx,
+	        qna_idx,
+	        original_file_name,
+	        stored_file_path,
+	        file_size,
+	        creator_id,
+	        created_datetime
+	         )
+	    VALUES
+	        (
+	        extractvalue(dbms_xmlgen.getxmltype('select tfile_seq.nextval - 1 from dual'),'//text()'),
+	        #{item.qnaIdx},
+	        #{item.originalFileName},
+	        #{item.storedFilePath},
+	        #{item.fileSize},
+	        'admin',
+	        sysdate
+	        )    
+	    </foreach> 
+  	</insert>
+
+	<select id="selectQnaFileList" resultType="org.big.dto.QnaFileDto" parameterType="int">
+		<![CDATA[
+			SELECT
+				idx,
+				qna_idx,
+				original_file_name,
+				ROUND(file_size / 1024) AS file_size
+			FROM
+				t_file
+			WHERE
+				qna_idx=#{qnaIdx}
+				AND deleted_yn='N'		
+		]]>
+	</select>
+  	
+  	<select id="selectQnaFileInformation" resultType="org.big.dto.QnaFileDto" parameterType="map">
+  		<![CDATA[
+  			SELECT
+  				original_file_name,
+  				stored_file_path,
+  				file_size
+  			FROM
+  				t_file
+  			WHERE
+  				idx=#{idx}
+  				AND qna_idx=#{qnaIdx}
+  				AND deleted_yn='N'			
+  		]]>
+  	</select>
+  </mapper>
